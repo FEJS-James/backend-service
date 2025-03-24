@@ -1,5 +1,6 @@
 import express from "express"
-import { getGoogleSheetClient } from "../utils/googleSheets.js"
+import { appendToSheet } from "../utils/googleSheets.js"
+import { logError, logInfo } from "../utils/logger.js"
 
 const router = express.Router()
 
@@ -7,6 +8,8 @@ const router = express.Router()
 router.post("/subscribe-newsletter", async (req, res) => {
   try {
     const { email } = req.body
+
+    logInfo("Newsletter", `Subscription attempt for email: ${email}`)
 
     // Validate email
     if (!email) {
@@ -25,31 +28,32 @@ router.post("/subscribe-newsletter", async (req, res) => {
       })
     }
 
-    // Get Google Sheets client
-    const sheets = await getGoogleSheetClient()
-
     // Prepare the row data
     const values = [[email, new Date().toISOString()]]
 
     // Append to the sheet
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "Newsletter!A:B",
-      valueInputOption: "USER_ENTERED",
-      resource: {
-        values,
-      },
-    })
+    await appendToSheet("Newsletter", values)
+
+    logInfo("Newsletter", `Successfully subscribed email: ${email}`)
 
     res.status(200).json({
       success: true,
       message: "Successfully subscribed to the newsletter!",
     })
   } catch (error) {
-    console.error("Newsletter subscription error:", error)
+    logError("Newsletter", `Subscription error: ${error.message}`)
+
+    // Provide a more user-friendly error message
+    let errorMessage = "Failed to subscribe. Please try again later."
+
+    if (error.message.includes("Unable to parse range")) {
+      errorMessage = "Server configuration error with Google Sheets. Please contact support."
+      logError("Newsletter", "Range parsing error. Check the format of your sheet name and range.")
+    }
+
     res.status(500).json({
       success: false,
-      message: "Failed to subscribe. Please try again later.",
+      message: errorMessage,
     })
   }
 })

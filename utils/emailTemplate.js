@@ -93,7 +93,7 @@ export function generateEmailTemplate({ name, email, phone, message }) {
         </div>
         <div class="footer">
           <p>© ${new Date().getFullYear()} Commercial Coding. All rights reserved.</p>
-          <p>This email was sent via mailsendr</p>
+          <p>This email was sent via MailerSend</p>
         </div>
       </div>
     </body>
