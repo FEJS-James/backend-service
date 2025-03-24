@@ -60,25 +60,6 @@ router.post("/book-meeting", async (req, res) => {
     // Log booking attempt
     logInfo("Booking", `Meeting booking attempt from ${fullName} (${email}) for ${formattedDate} at ${formattedTime}`)
 
-    // 1. Write to Google Sheet
-    const timestamp = new Date().toISOString()
-    const sheetData = [
-      [
-        timestamp,
-        fullName,
-        email,
-        phoneNumber || "Not provided",
-        companyName || "Not provided",
-        meetingDate,
-        meetingTime,
-        meetingType,
-        message || "No message provided",
-      ],
-    ]
-
-    await appendToSheet("Appointments", sheetData)
-    logInfo("Booking", "Appointment data saved to Google Sheet")
-
     // 2. Create Google Calendar event with Meet link
     // Prepare notes section with phone number if provided
     const phoneInfo = phoneNumber ? `Contact Phone: ${phoneNumber}` : "No phone number provided"
@@ -103,6 +84,12 @@ ${message ? `Additional Notes: ${message}` : ""}`,
     try {
       calendarEvent = await createCalendarEvent(eventDetails)
       logInfo("Booking", `Calendar event created with ID: ${calendarEvent.id}`)
+
+      if (calendarEvent.meetLink) {
+        logInfo("Booking", `Google Meet link created: ${calendarEvent.meetLink}`)
+      } else {
+        logInfo("Booking", "No Google Meet link was created for this event")
+      }
     } catch (calendarError) {
       logError("Booking", `Error creating calendar event: ${calendarError.message}`)
 
@@ -117,6 +104,27 @@ ${message ? `Additional Notes: ${message}` : ""}`,
         throw calendarError
       }
     }
+
+    // 1. Write to Google Sheet (now with Meet link)
+    const timestamp = new Date().toISOString()
+    const sheetData = [
+      [
+        timestamp,
+        fullName,
+        email,
+        phoneNumber || "Not provided",
+        companyName || "Not provided",
+        meetingDate,
+        meetingTime,
+        meetingType,
+        message || "No message provided",
+        calendarEvent.meetLink || "No Meet link",
+        calendarEvent.htmlLink || "No Calendar link",
+      ],
+    ]
+
+    await appendToSheet("Appointments", sheetData)
+    logInfo("Booking", "Appointment data saved to Google Sheet")
 
     // Add note about calendar invitation
     const calendarNote =

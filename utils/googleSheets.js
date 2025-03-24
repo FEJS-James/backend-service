@@ -62,7 +62,7 @@ export async function appendToSheet(sheetName, values) {
     if (sheetName === "Contact Form") {
       range = `${sheetName}!A:F`
     } else if (sheetName === "Appointments") {
-      range = `${sheetName}!A:I`
+      range = `${sheetName}!A:K` // Extended to include Meet link and Calendar link
     }
 
     // Append to the sheet
@@ -117,7 +117,19 @@ async function ensureSheetExists(sheets, sheetName) {
       if (sheetName === "Contact Form") {
         headers = ["Timestamp", "Name", "Email", "Phone", "Subject", "Message"]
       } else if (sheetName === "Appointments") {
-        headers = ["Timestamp", "Name", "Email", "Phone", "Company", "Date", "Time", "Meeting Type", "Message"]
+        headers = [
+          "Timestamp",
+          "Name",
+          "Email",
+          "Phone",
+          "Company",
+          "Date",
+          "Time",
+          "Meeting Type",
+          "Message",
+          "Meet Link",
+          "Calendar Link",
+        ]
       } else if (sheetName === "Newsletter") {
         headers = ["Email", "Timestamp"]
       }

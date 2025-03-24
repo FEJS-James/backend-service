@@ -95,6 +95,9 @@ export async function createCalendarEvent({
       event.conferenceData = {
         createRequest: {
           requestId: `meeting-${Date.now()}`,
+          conferenceSolutionKey: {
+            type: "hangoutsMeet",
+          },
         },
       }
     }
@@ -110,6 +113,13 @@ export async function createCalendarEvent({
     })
 
     logInfo("GoogleCalendar", `Calendar event created with ID: ${response.data.id}`)
+
+    // Log the Meet link if available
+    if (response.data.hangoutLink) {
+      logInfo("GoogleCalendar", `Google Meet link created: ${response.data.hangoutLink}`)
+    } else {
+      logInfo("GoogleCalendar", "No Google Meet link was created for this event")
+    }
 
     // Generate ICS file content with attendees
     // The ICS file will include attendees even though the Google Calendar event doesn't
