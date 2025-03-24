@@ -10,6 +10,7 @@ export async function getGoogleSheetClient() {
 
     // Handle newlines in the private key
     if (privateKey) {
+      // Replace literal "\n" strings with actual newlines
       privateKey = privateKey.replace(/\\n/g, "\n")
     }
 
@@ -84,60 +85,58 @@ export async function appendToSheet(sheetName, values) {
 
 async function ensureSheetExists(sheets, sheetName) {
   try {
-   // Get the spreadsheet
-   const spreadsheet = await sheets.spreadsheets.get({
-     spreadsheetId: process.env.GOOGLE_SHEET_ID,
-   })
+    // Get the spreadsheet
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    })
 
-   // Check if the sheet exists
-   const sheetExists = spreadsheet.data.sheets.some((sheet) => sheet.properties.title === sheetName)
+    // Check if the sheet exists
+    const sheetExists = spreadsheet.data.sheets.some((sheet) => sheet.properties.title === sheetName)
 
-   // If the sheet doesn't exist, create it
-   if (!sheetExists) {
-     logInfo("GoogleSheets", `Sheet "${sheetName}" does not exist, creating it...`)
-     await sheets.spreadsheets.batchUpdate({
-       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-       resource: {
-         requests: [
-           {
-             addSheet: {
-               properties: {
-                 title: sheetName,
-               },
-             },\
-           ],
-         },
-       },
-     })
+    // If the sheet doesn't exist, create it
+    if (!sheetExists) {
+      logInfo("GoogleSheets", `Sheet "${sheetName}" does not exist, creating it...`)
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        resource: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: sheetName,
+                },
+              },
+            },
+          ],
+        },
+      })
 
-     // Add headers based on the sheet name
-     let headers = ["Email", "Timestamp"]
-     
-     if (sheetName === "Contact Form") {
-       headers = ["Timestamp", "Name", "Email", "Phone", "Subject", "Message"]
-     } else if (sheetName === "Appointments") {
-       headers = ["Timestamp", "Name", "Email", "Phone", "Company", "Date", "Time", "Meeting Type", "Message"]
-     } else if (sheetName === "Newsletter") {
-       headers = ["Email", "Timestamp"]
-     }
+      // Add headers based on the sheet name
+      let headers = ["Email", "Timestamp"]
 
-     // Add headers to the new sheet
-     await sheets.spreadsheets.values.update({
-       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-       range: `${sheetName}!A1:${String.fromCharCode(65 + headers.length - 1)}1`,
-       valueInputOption: "USER_ENTERED",
-       resource: {
-         values: [headers],
-       },
-     })
-     
-     logInfo("GoogleSheets", `Sheet "${sheetName}" created with headers: ${headers.join(", ")}`)
-   }
-}
-catch (error)
-{
-  logError("GoogleSheets", `Error ensuring sheet "${sheetName}" exists: ${error.message}`)
-  throw error
-}
+      if (sheetName === "Contact Form") {
+        headers = ["Timestamp", "Name", "Email", "Phone", "Subject", "Message"]
+      } else if (sheetName === "Appointments") {
+        headers = ["Timestamp", "Name", "Email", "Phone", "Company", "Date", "Time", "Meeting Type", "Message"]
+      } else if (sheetName === "Newsletter") {
+        headers = ["Email", "Timestamp"]
+      }
+
+      // Add headers to the new sheet
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: `${sheetName}!A1:${String.fromCharCode(65 + headers.length - 1)}1`,
+        valueInputOption: "USER_ENTERED",
+        resource: {
+          values: [headers],
+        },
+      })
+
+      logInfo("GoogleSheets", `Sheet "${sheetName}" created with headers: ${headers.join(", ")}`)
+    }
+  } catch (error) {
+    logError("GoogleSheets", `Error ensuring sheet "${sheetName}" exists: ${error.message}`)
+    throw error
+  }
 }
 
