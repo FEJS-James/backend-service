@@ -60,7 +60,7 @@ router.post("/book-meeting", async (req, res) => {
     // Log booking attempt
     logInfo("Booking", `Meeting booking attempt from ${fullName} (${email}) for ${formattedDate} at ${formattedTime}`)
 
-    // 2. Create Google Calendar event with Meet link
+    // 2. Create Google Calendar event with Jitsi Meet link
     // Prepare notes section with phone number if provided
     const phoneInfo = phoneNumber ? `Contact Phone: ${phoneNumber}` : "No phone number provided"
 
@@ -81,31 +81,28 @@ ${message ? `Additional Notes: ${message}` : ""}`,
     }
 
     let calendarEvent
+    let meetLinkCreated = false
+
     try {
       calendarEvent = await createCalendarEvent(eventDetails)
       logInfo("Booking", `Calendar event created with ID: ${calendarEvent.id}`)
 
       if (calendarEvent.meetLink) {
-        logInfo("Booking", `Google Meet link created: ${calendarEvent.meetLink}`)
+        logInfo("Booking", `Jitsi Meet link created: ${calendarEvent.meetLink}`)
+        meetLinkCreated = true
       } else {
-        logInfo("Booking", "No Google Meet link was created for this event")
+        logInfo("Booking", "No Jitsi Meet link was created for this event")
       }
     } catch (calendarError) {
       logError("Booking", `Error creating calendar event: ${calendarError.message}`)
 
       // If we can't create the calendar event with a Meet link, try again without it
-      if (calendarError.message.includes("conference") || calendarError.message.includes("Invalid")) {
-        logInfo("Booking", "Retrying calendar event creation without Google Meet link")
-        eventDetails.addMeetLink = false
-        calendarEvent = await createCalendarEvent(eventDetails)
-        logInfo("Booking", `Calendar event created without Meet link, ID: ${calendarEvent.id}`)
-      } else {
-        // If it's not a conference-related error, rethrow it
-        throw calendarError
-      }
+      eventDetails.addMeetLink = false
+      calendarEvent = await createCalendarEvent(eventDetails)
+      logInfo("Booking", `Calendar event created without Meet link, ID: ${calendarEvent.id}`)
     }
 
-    // 1. Write to Google Sheet (now with Meet link)
+    // 1. Write to Google Sheet (now with Meet link if available)
     const timestamp = new Date().toISOString()
     const sheetData = [
       [
@@ -127,12 +124,9 @@ ${message ? `Additional Notes: ${message}` : ""}`,
     logInfo("Booking", "Appointment data saved to Google Sheet")
 
     // Add note about calendar invitation
-    const calendarNote =
-      "Note: Due to technical limitations, you won't receive a direct calendar invitation. " +
-      "Please use the attached .ics file to add this meeting to your calendar. " +
-      (calendarEvent.meetLink
-        ? "The Google Meet link is included in the calendar event and in this email."
-        : "This meeting does not include a Google Meet link.")
+    const calendarNote = meetLinkCreated
+      ? "The Jitsi Meet link is included in the calendar event and in this email."
+      : "This meeting does not include a video conferencing link. Please contact us if you need a video conferencing link."
 
     // 3. Send confirmation emails
     const emailData = {
@@ -148,6 +142,7 @@ ${message ? `Additional Notes: ${message}` : ""}`,
       calendarEventLink: calendarEvent.htmlLink,
       calendarAttachment: calendarEvent.icsContent,
       calendarNote: calendarNote,
+      meetingPlatform: "Jitsi Meet", // Add meeting platform info
     }
 
     // Send to client
@@ -200,7 +195,11 @@ ${message ? `Additional Notes: ${message}` : ""}`,
         meetingId: calendarEvent.id,
         meetLink: calendarEvent.meetLink,
         calendarEventLink: calendarEvent.htmlLink,
-        note: "Please use the attached calendar file (.ics) in the email to add this meeting to your calendar.",
+        meetLinkCreated: meetLinkCreated,
+        meetingPlatform: "Jitsi Meet",
+        note: meetLinkCreated
+          ? "A Jitsi Meet link has been created for this meeting."
+          : "No video conferencing link could be created for this meeting.",
       },
     })
   } catch (error) {

@@ -1,12 +1,11 @@
-// Test script to diagnose newsletter endpoint issues
 import dotenv from "dotenv"
 import fetch from "node-fetch"
-import { logInfo, logError } from "./utils/logger.js"
+import { logInfo, logError } from "../utils/logger.js"
 
 // Load environment variables
 dotenv.config()
 
-async function testNewsletterEndpoint() {
+export async function testNewsletter() {
   try {
     logInfo("Test", "Testing newsletter endpoint...")
 
@@ -26,15 +25,34 @@ async function testNewsletterEndpoint() {
     if (response.ok) {
       logInfo("Test", `Successfully subscribed test email: ${testEmail}`)
       logInfo("Test", `Response: ${JSON.stringify(data)}`)
+      return { success: true, message: "Newsletter test passed" }
     } else {
       logError("Test", `Failed to subscribe test email: ${testEmail}`)
       logError("Test", `Response: ${JSON.stringify(data)}`)
+
+      // Create a detailed error object
+      const error = new Error(`Newsletter test failed: ${data.message || "Unknown error"}`)
+      error.response = data
+      error.status = response.status
+
+      return {
+        success: false,
+        message: `Newsletter test failed: ${data.message || "Unknown error"}`,
+        error: error,
+      }
     }
   } catch (error) {
     logError("Test", `Newsletter endpoint test failed: ${error.message}`)
+    return {
+      success: false,
+      message: `Newsletter test failed: ${error.message}`,
+      error: error,
+    }
   }
 }
 
-// Run the test
-testNewsletterEndpoint()
+// Only run directly if this file is being executed directly
+if (process.argv[1].includes("test-newsletter.js")) {
+  testNewsletter()
+}
 

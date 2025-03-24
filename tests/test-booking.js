@@ -1,13 +1,13 @@
 import dotenv from "dotenv"
 import fetch from "node-fetch"
-import { logInfo, logError } from "./utils/logger.js"
+import { logInfo, logError } from "../utils/logger.js"
 
 // Load environment variables
 dotenv.config()
 
-async function testBookingWithMeet() {
+export async function testBooking() {
   try {
-    logInfo("Test", "Testing booking endpoint with Google Meet integration...")
+    logInfo("Test", "Testing booking endpoint...")
 
     // Get tomorrow's date
     const tomorrow = new Date()
@@ -25,7 +25,7 @@ async function testBookingWithMeet() {
       meetingDate: meetingDate,
       meetingTime: meetingTime,
       meetingType: "Consultation",
-      message: "This is a test booking to verify Google Meet integration.",
+      message: "This is a test booking to verify the booking endpoint functionality.",
     }
 
     // Make a request to the local endpoint
@@ -42,21 +42,34 @@ async function testBookingWithMeet() {
     if (response.ok) {
       logInfo("Test", `Successfully booked test meeting`)
       logInfo("Test", `Response: ${JSON.stringify(data, null, 2)}`)
-
-      if (data.data && data.data.meetLink) {
-        logInfo("Test", `Google Meet link created: ${data.data.meetLink}`)
-      } else {
-        logError("Test", "No Google Meet link was created for this event")
-      }
+      return { success: true, message: "Booking test passed" }
     } else {
       logError("Test", `Failed to book test meeting`)
       logError("Test", `Response: ${JSON.stringify(data, null, 2)}`)
+
+      // Create a detailed error object
+      const error = new Error(`Booking test failed: ${data.message || "Unknown error"}`)
+      error.response = data
+      error.status = response.status
+
+      return {
+        success: false,
+        message: `Booking test failed: ${data.message || "Unknown error"}`,
+        error: error,
+      }
     }
   } catch (error) {
     logError("Test", `Booking endpoint test failed: ${error.message}`)
+    return {
+      success: false,
+      message: `Booking test failed: ${error.message}`,
+      error: error,
+    }
   }
 }
 
-// Run the test
-testBookingWithMeet()
+// Only run directly if this file is being executed directly
+if (process.argv[1].includes("test-booking.js")) {
+  testBooking()
+}
 

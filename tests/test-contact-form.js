@@ -1,11 +1,11 @@
 import dotenv from "dotenv"
 import fetch from "node-fetch"
-import { logInfo, logError } from "./utils/logger.js"
+import { logInfo, logError } from "../utils/logger.js"
 
 // Load environment variables
 dotenv.config()
 
-async function testContactForm() {
+export async function testContactForm() {
   try {
     logInfo("Test", "Testing contact form endpoint...")
 
@@ -31,15 +31,34 @@ async function testContactForm() {
     if (response.ok) {
       logInfo("Test", `Contact form submission successful`)
       logInfo("Test", `Response: ${JSON.stringify(data)}`)
+      return { success: true, message: "Contact form test passed" }
     } else {
       logError("Test", `Contact form submission failed`)
       logError("Test", `Response: ${JSON.stringify(data)}`)
+
+      // Create a detailed error object
+      const error = new Error(`Contact form test failed: ${data.message || "Unknown error"}`)
+      error.response = data
+      error.status = response.status
+
+      return {
+        success: false,
+        message: `Contact form test failed: ${data.message || "Unknown error"}`,
+        error: error,
+      }
     }
   } catch (error) {
     logError("Test", `Contact form test failed: ${error.message}`)
+    return {
+      success: false,
+      message: `Contact form test failed: ${error.message}`,
+      error: error,
+    }
   }
 }
 
-// Run the test
-testContactForm()
+// Only run directly if this file is being executed directly
+if (process.argv[1].includes("test-contact-form.js")) {
+  testContactForm()
+}
 

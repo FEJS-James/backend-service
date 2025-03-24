@@ -9,12 +9,17 @@
     "dev": "nodemon server.js",
     "deploy": "chmod +x ./deploy.sh && ./deploy.sh",
     "deploy:push": "chmod +x ./deploy.sh && ./deploy.sh yes",
-    "test:sheets": "node test-google-sheets.js",
-    "test:newsletter": "node test-newsletter-endpoint.js",
-    "test:booking": "node test-booking.js",
-    "test:contact": "node test-contact-form.js",
-    "test:email": "node test-mailersend.js",
-    "test:email-attachment": "node test-mailersend-attachment.js"
+    "test": "node tests/run-tests.js",
+    "test:sheets": "node tests/test-google-sheets.js",
+    "test:newsletter": "node tests/test-newsletter.js",
+    "test:booking": "node tests/test-booking.js",
+    "test:contact": "node tests/test-contact-form.js",
+    "test:email": "node tests/test-mailersend.js",
+    "test:email-attachment": "node tests/test-mailersend-attachment.js",
+    "test:meet": "node tests/test-booking-meet.js",
+    "test:calendar": "node tests/test-calendar-permissions.js",
+    "test:cors": "node tests/test-cors.js",
+    "test:all": "node tests/run-tests.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

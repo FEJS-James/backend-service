@@ -14,6 +14,7 @@ export function generateBookingConfirmationEmail({
   calendarEventLink,
   calendarAttachment,
   calendarNote,
+  meetingPlatform = "Jitsi Meet", // Default to Jitsi Meet
   recipient, // "client" or "admin"
 }) {
   const isClient = recipient === "client"
@@ -27,21 +28,30 @@ export function generateBookingConfirmationEmail({
   const meetLinkSection = meetLink
     ? `
    <div class="meet-link">
-     <h3 style="margin-bottom: 10px; color: #4285F4;">Google Meet Link</h3>
+     <h3 style="margin-bottom: 10px; color: #4285F4;">${meetingPlatform} Link</h3>
      <p style="font-size: 16px; margin-bottom: 15px;">Join the meeting using this link:</p>
      <a href="${meetLink}" 
         style="display: inline-block; background-color: #4285F4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-bottom: 15px;"
         target="_blank">
-       Join Google Meet
+       Join ${meetingPlatform}
      </a>
      <p style="margin-top: 10px; font-size: 14px; color: #555;">
        Or copy this link: <span style="font-family: monospace; background-color: #f5f5f5; padding: 3px 6px; border-radius: 3px;">${meetLink}</span>
      </p>
+     ${
+       meetingPlatform === "Jitsi Meet"
+         ? `
+     <p style="margin-top: 15px; font-size: 14px; color: #555;">
+       <strong>Note:</strong> Jitsi Meet works best in Chrome or Chromium-based browsers. No account is needed to join.
+     </p>
+     `
+         : ""
+     }
    </div>
    `
     : `
    <div class="note">
-     <p><strong>Note:</strong> This meeting does not include a Google Meet link. Please check your email for any alternative meeting instructions.</p>
+     <p><strong>Note:</strong> This meeting does not include a video conferencing link. Please check your email for any alternative meeting instructions.</p>
    </div>
    `
 
@@ -209,7 +219,7 @@ export function generateBookingConfirmationEmail({
         </div>
         
         <div class="buttons">
-          ${meetLink ? `<a href="${meetLink}" class="button meet-button" target="_blank">Join Google Meet</a>` : ""}
+          ${meetLink ? `<a href="${meetLink}" class="button meet-button" target="_blank">Join ${meetingPlatform}</a>` : ""}
         </div>
         
         ${

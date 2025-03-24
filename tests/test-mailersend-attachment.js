@@ -1,7 +1,6 @@
-// Test script for the MailerSend functionality with attachments
 import dotenv from "dotenv"
-import { sendEmail } from "./utils/mailersend.js"
-import { logInfo, logError } from "./utils/logger.js"
+import { sendEmail } from "../utils/mailersend.js"
+import { logInfo, logError } from "../utils/logger.js"
 import ical from "ical-generator"
 import fs from "fs"
 import path from "path"
@@ -13,7 +12,7 @@ dotenv.config()
 // Get the directory name
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-async function testMailerSendWithAttachment() {
+export async function testMailerSendAttachment() {
   try {
     logInfo("Test", "Testing MailerSend email sending with attachment...")
 
@@ -56,17 +55,17 @@ async function testMailerSendWithAttachment() {
       from: process.env.MAILSENDR_FROM_EMAIL,
       subject: "Test Email with Multiple Attachments from MailerSend",
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-          <h1>Test Email with Attachments</h1>
-          <p>This is a test email to verify the MailerSend integration is working correctly with attachments.</p>
-          <p>Sent at: ${new Date().toISOString()}</p>
-          <p>Two files are attached to this email:</p>
-          <ul>
-            <li>A calendar file (.ics)</li>
-            <li>A text file (.txt)</li>
-          </ul>
-        </div>
-      `,
+       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+         <h1>Test Email with Attachments</h1>
+         <p>This is a test email to verify the MailerSend integration is working correctly with attachments.</p>
+         <p>Sent at: ${new Date().toISOString()}</p>
+         <p>Two files are attached to this email:</p>
+         <ul>
+           <li>A calendar file (.ics)</li>
+           <li>A text file (.txt)</li>
+         </ul>
+       </div>
+     `,
       text: "This is a test email to verify the MailerSend integration is working correctly with attachments.",
       attachments: [
         {
@@ -84,12 +83,18 @@ async function testMailerSendWithAttachment() {
 
     logInfo("Test", "Email with attachments sent successfully!")
     logInfo("Test", `Response: ${JSON.stringify(result, null, 2)}`)
+
+    return { success: true, message: "MailerSend attachment test passed" }
   } catch (error) {
     logError("Test", `MailerSend attachment test failed: ${error.message}`)
     console.error(error)
+
+    return { success: false, message: `MailerSend attachment test failed: ${error.message}` }
   }
 }
 
-// Run the test
-testMailerSendWithAttachment()
+// Only run directly if this file is being executed directly
+if (process.argv[1].includes("test-mailersend-attachment.js")) {
+  testMailerSendAttachment()
+}
 

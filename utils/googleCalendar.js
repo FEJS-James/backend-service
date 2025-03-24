@@ -1,6 +1,7 @@
 import { google } from "googleapis"
 import { logError, logInfo } from "./logger.js"
 import ical from "ical-generator"
+import crypto from "crypto"
 
 /**
  * Get Google Calendar client
@@ -49,7 +50,29 @@ export async function getGoogleCalendarClient() {
 }
 
 /**
- * Create a calendar event with Google Meet link
+ * Generate a Jitsi Meet link
+ * @param {string} meetingName - Base name for the meeting
+ * @returns {string} - Jitsi Meet URL
+ */
+export function generateJitsiMeetLink(meetingName) {
+  // Create a sanitized meeting name (remove spaces, special chars)
+  const sanitizedName = meetingName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .substring(0, 20)
+
+  // Add a random string to make the room name unique
+  const randomString = crypto.randomBytes(4).toString("hex")
+
+  // Combine the sanitized name with the random string
+  const roomName = `${sanitizedName}-${randomString}`
+
+  // Return the full Jitsi Meet URL
+  return `https://meet.jit.si/${roomName}`
+}
+
+/**
+ * Create a calendar event with Jitsi Meet link
  *
  * Note: Service accounts cannot add attendees without Domain-Wide Delegation.
  * This function works around that limitation by:
@@ -68,6 +91,13 @@ export async function createCalendarEvent({
   try {
     const calendar = await getGoogleCalendarClient()
 
+    // Generate a Jitsi Meet link if requested
+    let meetLink = null
+    if (addMeetLink) {
+      meetLink = generateJitsiMeetLink(summary)
+      logInfo("GoogleCalendar", `Generated Jitsi Meet link: ${meetLink}`)
+    }
+
     // Create event resource
     // Note: We don't include attendees here due to service account limitations
     const event = {
@@ -75,7 +105,8 @@ export async function createCalendarEvent({
       description:
         description +
         "\n\nAttendees:\n" +
-        attendees.map((a) => `- ${a.displayName || a.email} (${a.email})`).join("\n"),
+        attendees.map((a) => `- ${a.displayName || a.email} (${a.email})`).join("\n") +
+        (meetLink ? `\n\nJoin with Jitsi Meet: ${meetLink}` : ""),
       start: {
         dateTime: startDateTime.toISOString(),
         timeZone: "UTC",
@@ -87,19 +118,8 @@ export async function createCalendarEvent({
       // Make the event public so attendees can access it
       visibility: "public",
       transparency: "opaque", // Show as busy
-    }
-
-    // Add Google Meet conferencing if requested
-    if (addMeetLink) {
-      // Use the correct conference data format
-      event.conferenceData = {
-        createRequest: {
-          requestId: `meeting-${Date.now()}`,
-          conferenceSolutionKey: {
-            type: "hangoutsMeet",
-          },
-        },
-      }
+      // Set the location to the Jitsi Meet link if available
+      location: meetLink || "Online Meeting",
     }
 
     logInfo("GoogleCalendar", "Creating calendar event without attendees due to service account limitations")
@@ -108,18 +128,10 @@ export async function createCalendarEvent({
     const response = await calendar.events.insert({
       calendarId: "primary",
       resource: event,
-      conferenceDataVersion: addMeetLink ? 1 : 0,
       sendUpdates: "none", // Don't send updates since we can't add attendees
     })
 
     logInfo("GoogleCalendar", `Calendar event created with ID: ${response.data.id}`)
-
-    // Log the Meet link if available
-    if (response.data.hangoutLink) {
-      logInfo("GoogleCalendar", `Google Meet link created: ${response.data.hangoutLink}`)
-    } else {
-      logInfo("GoogleCalendar", "No Google Meet link was created for this event")
-    }
 
     // Generate ICS file content with attendees
     // The ICS file will include attendees even though the Google Calendar event doesn't
@@ -134,9 +146,8 @@ export async function createCalendarEvent({
       start: startDateTime,
       end: endDateTime,
       summary: summary,
-      description:
-        description + (response.data.hangoutLink ? `\n\nJoin with Google Meet: ${response.data.hangoutLink}` : ""),
-      location: response.data.hangoutLink || "Online Meeting",
+      description: description + (meetLink ? `\n\nJoin with Jitsi Meet: ${meetLink}` : ""),
+      location: meetLink || "Online Meeting",
       url: response.data.htmlLink,
       organizer: {
         name: "Commercial Coding",
@@ -152,11 +163,17 @@ export async function createCalendarEvent({
     return {
       id: response.data.id,
       htmlLink: response.data.htmlLink,
-      meetLink: response.data.hangoutLink,
+      meetLink: meetLink,
       icsContent: cal.toString(),
     }
   } catch (error) {
     logError("GoogleCalendar", `Error creating calendar event: ${error.message}`)
+
+    // Log more details about the error
+    if (error.response) {
+      logError("GoogleCalendar", `Error response: ${JSON.stringify(error.response.data, null, 2)}`)
+    }
+
     throw error
   }
 }

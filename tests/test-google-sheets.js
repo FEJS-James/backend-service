@@ -1,12 +1,11 @@
-// Test script to diagnose Google Sheets integration issues
 import dotenv from "dotenv"
-import { getGoogleSheetClient, appendToSheet } from "./utils/googleSheets.js"
-import { logInfo, logError } from "./utils/logger.js"
+import { getGoogleSheetClient, appendToSheet } from "../utils/googleSheets.js"
+import { logInfo, logError } from "../utils/logger.js"
 
 // Load environment variables
 dotenv.config()
 
-async function testGoogleSheetsConnection() {
+export async function testGoogleSheets() {
   try {
     logInfo("Test", "Testing Google Sheets connection...")
 
@@ -33,6 +32,8 @@ async function testGoogleSheetsConnection() {
 
     logInfo("Test", `Successfully appended test email (${testEmail}) to Newsletter sheet`)
     logInfo("Test", "All tests passed! Google Sheets integration is working correctly.")
+
+    return { success: true, message: "Google Sheets test passed" }
   } catch (error) {
     logError("Test", `Google Sheets test failed: ${error.message}`)
     logError("Test", error.stack)
@@ -49,9 +50,13 @@ async function testGoogleSheetsConnection() {
     if (!process.env.GOOGLE_SHEET_ID) {
       logError("Test", "GOOGLE_SHEET_ID is missing")
     }
+
+    return { success: false, message: `Google Sheets test failed: ${error.message}` }
   }
 }
 
-// Run the test
-testGoogleSheetsConnection()
+// Only run directly if this file is being executed directly
+if (process.argv[1].includes("test-google-sheets.js")) {
+  testGoogleSheets()
+}
 
